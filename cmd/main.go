@@ -30,7 +30,25 @@ func (c *Chat) drawMessages() {
 		msg := c.messages[(len(c.messages) - (1 + i))]
 		y = c.drawMessage(msg, y, w)
 	}
+	if c.scrollOffset > 0 {
+		c.drawBack()
+	}
 	c.screen.Show()
+}
+
+func (c *Chat) drawBack() {
+	w, h := c.screen.Size()
+	backStyle := tcell.StyleDefault.
+		Background(tcell.ColorDarkSlateGray).
+		Foreground(tcell.ColorLightGray)
+	c.screen.SetCell(w/2-4, h-1, backStyle, ' ')
+	c.screen.SetCell(w/2-3, h-1, backStyle, ' ')
+	c.screen.SetCell(w/2-2, h-1, backStyle, 'b')
+	c.screen.SetCell(w/2-1, h-1, backStyle, 'a')
+	c.screen.SetCell(w/2+0, h-1, backStyle, 'c')
+	c.screen.SetCell(w/2+1, h-1, backStyle, 'k')
+	c.screen.SetCell(w/2+2, h-1, backStyle, ' ')
+	c.screen.SetCell(w/2+3, h-1, backStyle, ' ')
 }
 
 func (c *Chat) drawMessage(msg twitch.PrivateMessage, yStart, width int) int {
@@ -111,6 +129,7 @@ func run() error {
 				chat.drawMessages()
 				s.Sync()
 			case *tcell.EventMouse:
+				chat.Lock()
 				switch ev.Buttons() {
 				case tcell.WheelUp:
 					chat.scrollOffset++
@@ -122,7 +141,14 @@ func run() error {
 					if chat.scrollOffset < 0 {
 						chat.scrollOffset = 0
 					}
+				case tcell.Button1:
+					w, h := chat.screen.Size()
+					x, y := ev.Position()
+					if y == h-1 && (x >= w/2-4 && x <= w/2+3) {
+						chat.scrollOffset = 0
+					}
 				}
+				chat.Unlock()
 				chat.drawMessages()
 			}
 		}
